@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from registration.forms import RegistrationForm
+from . import app_settings
 
 
 def save_user(form_instance, profile_callback=None):
@@ -26,7 +26,7 @@ class InvitationForm(forms.Form):
     email = forms.EmailField()
 
 
-class RegistrationFormInvitation(RegistrationForm):
+class RegistrationFormInvitation(app_settings.get_registration_form()):
     """
     Subclass of ``registration.RegistrationForm`` that create an **active**
     user.
