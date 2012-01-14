@@ -92,7 +92,7 @@ def register(request,
              success_url=None,
              form_class=RegistrationFormInvitation,
              profile_callback=None,
-             template_name='registration/registration_form.html',
+             template_name='invitation/registration_form.html',
              extra_context=None):
     """
     Allow a new user to register via invitation.
