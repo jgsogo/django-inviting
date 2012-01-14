@@ -293,11 +293,10 @@ class InvitationStats(models.Model):
         :count:
             Number of invitations to mark used. Default is ``1``.
         """
-        if app_settings.INVITE_ONLY:
-            if self.available - count >= 0:
-                self.available = models.F('available') - count
-            else:
-                raise InvitationError('No available invitations.')
+        if self.available - count >= 0:
+            self.available = models.F('available') - count
+        else:
+            raise InvitationError('No available invitations.')
         self.sent = models.F('sent') + count
         self.save()
     use.alters_data = True
@@ -318,6 +317,8 @@ class InvitationStats(models.Model):
             raise InvitationError('There can\'t be more accepted ' \
                                   'invitations than sent invitations.')
         self.accepted = models.F('accepted') + count
+        if app_settings.REPOPULATE_ACCEPTED:
+            self.available = models.F('available') + count
         self.save()
     mark_accepted.alters_data = True
 
