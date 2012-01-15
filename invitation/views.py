@@ -3,10 +3,13 @@ from django.http import HttpResponseRedirect
 from django.template import RequestContext
 from django.shortcuts import render_to_response
 from django.utils.translation import ugettext
+from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
-from models import InvitationError, Invitation, InvitationStats
-from forms import InvitationForm, RegistrationFormInvitation
+
+from . import app_settings
+from .models import InvitationError, Invitation, InvitationStats
+from .forms import InvitationForm, RegistrationFormInvitation
 
 
 def apply_extra_context(context, extra_context=None):
@@ -171,6 +174,11 @@ def register(request,
         if form.is_valid():
             new_user = form.save(profile_callback=profile_callback)
             invitation.mark_accepted(new_user)
+            if app_settings.AUTO_LOGIN:
+                # Sign the user in.
+                auth_user = authenticate(identification=new_user.email,
+                                         check_password=False)
+                login(request, auth_user)
             return HttpResponseRedirect(success_url or \
                                              reverse('invitation_registered'))
     else:
