@@ -40,3 +40,5 @@ REPOPULATE_ACCEPTED = getattr(settings, 'INVITATION_REPOPULATE_ACCEPTED', False)
 AUTO_LOGIN = getattr(settings, 'INVITATION_AUTO_LOGIN', False)
 REWARD_THRESHOLD = getattr(settings, 'INVITATION_REWARD_THRESHOLD', 0.75)
 PERFORMANCE_FUNC = get_performance_func(settings)
+AUTH_CREATE_USER_FUNC = getattr(settings, 'AUTH_CREATE_USER_FUNC',
+    get_module_object("django.contrib.auth.models.User").objects.create_user)
