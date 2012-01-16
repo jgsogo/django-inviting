@@ -100,10 +100,6 @@ def register(request,
     """
     Allow a new user to register via invitation.
 
-    Send invitation email and then redirect to success URL if the
-    invitation form is valid. Redirect named URL ``invitation_unavailable``
-    on InvitationError. Render invitation form template otherwise.
-
     **Required arguments:**
 
     :invitation_key:

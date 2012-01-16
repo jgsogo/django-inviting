@@ -8,9 +8,12 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.hashcompat import sha_constructor
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site, RequestSite
-import app_settings
-import signals
+from . import app_settings
+from . import signals
 
+
+def get_deleted_user():
+    return User.objects.get_or_create(username='DeletedUser')[0]
 
 def performance_calculator_invite_only(invitation_stats):
     """Calculate a performance score between ``0.0`` and ``1.0``.
@@ -53,6 +56,12 @@ class InvitationManager(models.Manager):
         """
         invitation = None
         try:
+            # If emails are unique, then don't allow invites to emails which
+            # are already in the system.
+            if app_settings.UNIQUE_EMAIL:
+                if User.objects.filter(email__iexact=email):
+                    raise InvitationError(_('This email is already in by a user. Please supply a different email.'))
+            
             # It is possible that there is more than one invitation fitting
             # the criteria. Normally this means some older invitations are
             # expired or an email is invited consequtively.
@@ -85,7 +94,8 @@ class InvitationManager(models.Manager):
         except IndexError:
             raise Invitation.DoesNotExist
         if not invitation.is_valid():
-            invitation.delete()
+            if app_settings.RECORD_INVITES:
+                invitation.delete()
             raise Invitation.DoesNotExist
         return invitation
 
@@ -94,10 +104,21 @@ class InvitationManager(models.Manager):
         """
         expiration = datetime.datetime.now() - datetime.timedelta(
                                                      app_settings.EXPIRE_DAYS)
-        return self.get_query_set().filter(date_invited__gte=expiration)
+        qs = self.get_query_set().filter(date_invited__gte=expiration)
+        if app_settings.RECORD_INVITES:
+            qs = qs.filter(invitee__id__exact=None)
+        return qs
 
     def invalid(self):
         """Filter invalid invitation.
+        """
+        filters = {}
+        if app_settings.RECORD_INVITES:
+            filters = dict(invitee__id__exact=None)
+        return self.expired().filter(**filters)
+
+    def expired(self):
+        """Filter expired invitation.
         """
         expiration = datetime.datetime.now() - datetime.timedelta(
                                                      app_settings.EXPIRE_DAYS)
@@ -110,6 +131,9 @@ class Invitation(models.Model):
     key = models.CharField(_(u'invitation key'), max_length=40, unique=True)
     date_invited = models.DateTimeField(_(u'date invited'),
                                         default=datetime.datetime.now)
+    if app_settings.RECORD_INVITES:
+        invitee = models.OneToOneField(User, related_name='invite', null=True,
+                                       on_delete=models.SET(get_deleted_user))
 
     objects = InvitationManager()
 
@@ -137,7 +161,10 @@ class Invitation(models.Model):
         """
         Return ``True`` if the invitation is still valid, ``False`` otherwise.
         """
-        return datetime.datetime.now() < self._expires_at
+        valid = datetime.datetime.now() < self._expires_at
+        if app_settings.RECORD_INVITES:
+            valid = valid and self.invitee is None
+        return valid
 
     def expiration_date(self):
         """Return a ``datetime.date()`` object representing expiration date.
@@ -205,7 +232,11 @@ class Invitation(models.Model):
         signals.invitation_accepted.send(sender=self,
                                          inviting_user=self.user,
                                          new_user=new_user)
-        self.delete()
+        if app_settings.RECORD_INVITES:
+            self.invitee = new_user
+            self.save()
+        else:
+            self.delete()
     mark_accepted.alters_data = True
 
 
