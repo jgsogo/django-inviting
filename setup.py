@@ -12,6 +12,10 @@ def compile_translations():
         return None
     curdir = os.getcwdu()
     os.chdir(os.path.join(os.path.dirname(__file__), 'invitation'))
+    # compile_messages will try to import the settings module if its set,
+    # but this is not called with manage.py, so we might not have a corerct
+    # sys.path
+    os.environ["DJANGO_SETTINGS_MODULE"] = ""
     try:
         compile_messages(stderr=sys.stderr)
     except TypeError:
