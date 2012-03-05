@@ -7,6 +7,11 @@ from invitation.models import InvitationError, Invitation, InvitationStats
 from invitation.models import performance_calculator_invite_only
 from invitation.models import performance_calculator_invite_optional
 
+try:
+    from django.utils.timezone import now
+except ImportError:
+    now = datetime.datetime.now
+
 
 EXPIRE_DAYS = app_settings.EXPIRE_DAYS
 INITIAL_INVITATIONS = app_settings.INITIAL_INVITATIONS
@@ -23,8 +28,7 @@ class InvitationTestCase(BaseTestCase):
 
     def make_invalid(self, invitation=None):
         invitation = invitation or self.invitation
-        invitation.date_invited = datetime.datetime.now() - \
-                                  datetime.timedelta(EXPIRE_DAYS + 10)
+        invitation.date_invited = now() - datetime.timedelta(EXPIRE_DAYS + 10)
         invitation.save()
         return invitation
 

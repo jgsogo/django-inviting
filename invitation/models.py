@@ -11,6 +11,11 @@ from django.contrib.sites.models import Site, RequestSite
 from . import app_settings
 from . import signals
 
+try:
+    from django.utils.timezone import now
+except ImportError:
+    now = datetime.datetime.now
+
 
 def get_deleted_user():
     return User.objects.get_or_create(username='DeletedUser')[0]
@@ -102,8 +107,7 @@ class InvitationManager(models.Manager):
     def valid(self):
         """Filter valid invitations.
         """
-        expiration = datetime.datetime.now() - datetime.timedelta(
-                                                     app_settings.EXPIRE_DAYS)
+        expiration = now() - datetime.timedelta(app_settings.EXPIRE_DAYS)
         qs = self.get_query_set().filter(date_invited__gte=expiration)
         if app_settings.RECORD_INVITES:
             qs = qs.filter(invitee__id__exact=None)
@@ -120,8 +124,7 @@ class InvitationManager(models.Manager):
     def expired(self):
         """Filter expired invitation.
         """
-        expiration = datetime.datetime.now() - datetime.timedelta(
-                                                     app_settings.EXPIRE_DAYS)
+        expiration = now() - datetime.timedelta(app_settings.EXPIRE_DAYS)
         return self.get_query_set().filter(date_invited__le=expiration)
 
 
@@ -130,7 +133,7 @@ class Invitation(models.Model):
     email = models.EmailField(_(u'e-mail'))
     key = models.CharField(_(u'invitation key'), max_length=40, unique=True)
     date_invited = models.DateTimeField(_(u'date invited'),
-                                        default=datetime.datetime.now)
+                                        default=now)
     if app_settings.RECORD_INVITES:
         invitee = models.OneToOneField(User, related_name='invite', null=True,
                                        on_delete=models.SET(get_deleted_user))
@@ -161,7 +164,7 @@ class Invitation(models.Model):
         """
         Return ``True`` if the invitation is still valid, ``False`` otherwise.
         """
-        valid = datetime.datetime.now() < self._expires_at
+        valid = now() < self._expires_at
         if app_settings.RECORD_INVITES:
             valid = valid and self.invitee is None
         return valid
