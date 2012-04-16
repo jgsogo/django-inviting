@@ -172,9 +172,11 @@ def register(request,
             invitation.mark_accepted(new_user)
             if app_settings.AUTO_LOGIN:
                 # Sign the user in.
-                auth_user = authenticate(username=new_user.username, password=form.cleaned_data['password1'])
-                if auth_user:
-                   login(request, auth_user)
+                try:
+                    auth_user = authenticate(username=new_user.username, password=form.cleaned_data['password1'])
+                    login(request, auth_user)
+                except:
+                    pass
             return HttpResponseRedirect(success_url or \
                                              reverse('invitation_registered'))
     else:
