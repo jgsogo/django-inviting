@@ -36,7 +36,7 @@ urlpatterns = patterns('',
 if INVITE_ONLY:
     urlpatterns += patterns('',
         url(r'^register/$',
-            'django.views.generic.simple.redirect_to',
+            'django.shortcuts.render',
             {'url': '../invitation/invite_only/', 'permanent': False},
             name='registration_register'),
         url(r'^invitation/invite_only/$',
