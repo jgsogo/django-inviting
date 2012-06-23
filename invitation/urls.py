@@ -1,10 +1,10 @@
 from django.conf.urls.defaults import *
-from django.views.generic.simple import direct_to_template
+from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from app_settings import INVITE_ONLY
 
 
-login_required_direct_to_template = login_required(direct_to_template)
+login_required_direct_to_template = login_required(render)
 
 
 urlpatterns = patterns('',
@@ -24,7 +24,7 @@ urlpatterns = patterns('',
         {'template': 'invitation/invitation_unavailable.html'},
         name='invitation_unavailable'),
     url(r'^invitation/accept/complete/$',
-        direct_to_template,
+        render,
         {'template': 'invitation/invitation_registered.html'},
         name='invitation_registered'),
     url(r'^invitation/accept/(?P<invitation_key>\w+)/$',
@@ -40,7 +40,7 @@ if INVITE_ONLY:
             {'url': '../invitation/invite_only/', 'permanent': False},
             name='registration_register'),
         url(r'^invitation/invite_only/$',
-            direct_to_template,
+            render,
             {'template': 'invitation/invite_only.html'},
             name='invitation_invite_only'),
         url(r'^invitation/reward/$',
