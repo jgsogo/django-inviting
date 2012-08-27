@@ -1,7 +1,7 @@
 import datetime
 import random
 from django.db import models
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
@@ -66,7 +66,7 @@ class InvitationManager(models.Manager):
             if app_settings.UNIQUE_EMAIL:
                 if User.objects.filter(email__iexact=email):
                     raise InvitationError(_('This email is already in by a user. Please supply a different email.'))
-            
+
             # It is possible that there is more than one invitation fitting
             # the criteria. Normally this means some older invitations are
             # expired or an email is invited consequtively.
@@ -216,12 +216,22 @@ class Invitation(models.Model):
                                    {'invitation': self, 'site': site})
         # Email subject *must not* contain newlines
         subject = ''.join(subject.splitlines())
-        message = render_to_string('invitation/invitation_email.txt', {
+        text_content = render_to_string('invitation/invitation_email.txt', {
             'invitation': self,
             'expiration_days': app_settings.EXPIRE_DAYS,
             'site': site
         })
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [email])
+        msg = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, [email])
+        try:
+            html_content = render_to_string('invitation/invitation_email.html', {
+            'invitation': self,
+            'expiration_days': app_settings.EXPIRE_DAYS,
+            'site': site
+            })
+            msg.attach_alternative(html_content, "text/html")
+        except:
+            pass
+        msg.send()
         signals.invitation_sent.send(sender=self)
 
     def mark_accepted(self, new_user):
